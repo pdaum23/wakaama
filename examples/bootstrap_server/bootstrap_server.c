@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2015 Intel Corporation and others.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -105,7 +105,13 @@ static void prv_print_uri(FILE * fd,
         {
             fprintf(fd, "/%d", uriP->instanceId);
             if (LWM2M_URI_IS_SET_RESOURCE(uriP))
+            {
                 fprintf(fd, "/%d", uriP->resourceId);
+#ifndef LWM2M_VERSION_1_0
+                if (LWM2M_URI_IS_SET_RESOURCE_INSTANCE(uriP))
+                    fprintf(fd, "/%d", uriP->resourceInstanceId);
+#endif
+            }
         }
     }
 }
@@ -233,7 +239,7 @@ static void prv_send_command(internal_data_t * dataP,
             return;
         }
 
-        uri.flag = LWM2M_URI_FLAG_OBJECT_ID | LWM2M_URI_FLAG_INSTANCE_ID;
+        LWM2M_URI_RESET(&uri);
         uri.objectId = LWM2M_SECURITY_OBJECT_ID;
         uri.instanceId = endP->cmdList->serverId;
 
@@ -258,7 +264,7 @@ static void prv_send_command(internal_data_t * dataP,
             return;
         }
 
-        uri.flag = LWM2M_URI_FLAG_OBJECT_ID | LWM2M_URI_FLAG_INSTANCE_ID;
+        LWM2M_URI_RESET(&uri);
         uri.objectId = LWM2M_SERVER_OBJECT_ID;
         uri.instanceId = endP->cmdList->serverId;
 
@@ -302,7 +308,6 @@ static int prv_bootstrap_callback(void * sessionH,
                                   void * userData)
 {
     internal_data_t * dataP = (internal_data_t *)userData;
-    uint8_t result;
     endpoint_t * endP;
 
     switch (status)
@@ -407,8 +412,8 @@ static void prv_bootstrap_client(char * buffer,
 {
     internal_data_t * dataP = (internal_data_t *)user_data;
     char * uri;
-    char * name;
-    char* end = NULL;
+    char * name = "";
+    char * end = NULL;
     char * host;
     char * port;
     connection_t * newConnP = NULL;

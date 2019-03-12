@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2015 Intel Corporation and others.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -41,7 +41,7 @@ char * security_get_uri(lwm2m_object_t * obj, int instanceId, char * uriBuffer, 
     {
         if (bufferSize > dataP->value.asBuffer.length){
             memset(uriBuffer,0,dataP->value.asBuffer.length+1);
-            strncpy(uriBuffer,dataP->value.asBuffer.buffer,dataP->value.asBuffer.length);
+            strncpy(uriBuffer,(const char *)dataP->value.asBuffer.buffer,dataP->value.asBuffer.length);
             lwm2m_data_free(size, dataP);
             return uriBuffer;
         }
@@ -121,6 +121,7 @@ char * security_get_secret_key(lwm2m_object_t * obj, int instanceId, int * lengt
 
 /********************* Security Obj Helpers Ends **********************/
 
+/* Returns the number sent, or -1 for errors */
 int send_data(dtls_connection_t *connP,
                     uint8_t * buffer,
                     size_t length)
@@ -147,7 +148,7 @@ int send_data(dtls_connection_t *connP,
         port = saddr->sin6_port;
     }
 
-    fprintf(stderr, "Sending %d bytes to [%s]:%hu\r\n", length, s, ntohs(port));
+    fprintf(stderr, "Sending %d bytes to [%s]:%hu\r\n", (int)length, s, ntohs(port));
 
     output_buffer(stderr, buffer, length, 0);
 #endif
@@ -160,7 +161,7 @@ int send_data(dtls_connection_t *connP,
         offset += nbSent;
     }
     connP->lastSend = lwm2m_gettime();
-    return 0;
+    return offset;
 }
 
 /**************************  TinyDTLS Callbacks  ************************/
@@ -214,6 +215,11 @@ static int get_psk_info(struct dtls_context_t *ctx,
             lwm2m_free(key);
             return keyLen;
         }
+        case DTLS_PSK_HINT:
+        {
+            // PSK_HINT is optional and can be empty.
+            return 0;
+        }
         default:
             printf("unsupported request type: %d\n", type);
     }
@@ -221,23 +227,25 @@ static int get_psk_info(struct dtls_context_t *ctx,
     return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
 }
 
+/* The callback function must return the number of bytes
+ * that were sent, or a value less than zero to indicate an
+ * error. */
 static int send_to_peer(struct dtls_context_t *ctx,
         session_t *session, uint8 *data, size_t len) {
 
     // find connection
-    dtls_connection_t * connP = (dtls_connection_t *) ctx->app;
     dtls_connection_t* cnx = connection_find((dtls_connection_t *) ctx->app, &(session->addr.st),session->size);
     if (cnx != NULL)
     {
         // send data to peer
 
         // TODO: nat expiration?
-        int err = send_data(cnx,data,len);
-        if (COAP_NO_ERROR != err)
+        int res = send_data(cnx,data,len);
+        if (res < 0)
         {
             return -1;
         }
-        return 0;
+        return res;
     }
     return -1;
 }
@@ -246,7 +254,6 @@ static int read_from_peer(struct dtls_context_t *ctx,
           session_t *session, uint8 *data, size_t len) {
 
     // find connection
-    dtls_connection_t * connP = (dtls_connection_t *) ctx->app;
     dtls_connection_t* cnx = connection_find((dtls_connection_t *) ctx->app, &(session->addr.st),session->size);
     if (cnx != NULL)
     {

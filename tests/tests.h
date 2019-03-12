@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2015 Bosch Software Innovations GmbH, Germany.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -32,5 +32,8 @@ CU_ErrorCode create_object_read_suit();
 CU_ErrorCode create_convert_numbers_suit();
 CU_ErrorCode create_tlv_json_suit();
 CU_ErrorCode create_block1_suit();
+#ifdef LWM2M_SUPPORT_SENML_JSON
+CU_ErrorCode create_senml_json_suit();
+#endif
 
 #endif /* TESTS_H_ */

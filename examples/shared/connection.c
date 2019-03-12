@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2013, 2014 Intel Corporation and others.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -20,9 +20,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "connection.h"
-
-// from commandline.c
-void output_buffer(FILE * stream, uint8_t * buffer, int length, int indent);
+#include "commandline.h"
 
 int create_socket(const char * portStr, int addressFamily)
 {
@@ -86,7 +84,7 @@ connection_t * connection_new_incoming(connection_t * connList,
 {
     connection_t * connP;
 
-    connP = (connection_t *)malloc(sizeof(connection_t));
+    connP = (connection_t *)lwm2m_malloc(sizeof(connection_t));
     if (connP != NULL)
     {
         connP->sock = sock;
@@ -140,7 +138,7 @@ connection_t * connection_create(connection_t * connList,
         close(s);
     }
     if (NULL != servinfo) {
-        free(servinfo);
+        freeaddrinfo(servinfo);
     }
 
     return connP;
@@ -153,7 +151,7 @@ void connection_free(connection_t * connList)
         connection_t * nextP;
 
         nextP = connList->next;
-        free(connList);
+        lwm2m_free(connList);
 
         connList = nextP;
     }
@@ -207,6 +205,8 @@ uint8_t lwm2m_buffer_send(void * sessionH,
 {
     connection_t * connP = (connection_t*) sessionH;
 
+    (void)userdata; /* unused */
+
     if (connP == NULL)
     {
         fprintf(stderr, "#> failed sending %lu bytes, missing connection\r\n", length);
@@ -226,5 +226,7 @@ bool lwm2m_session_is_equal(void * session1,
                             void * session2,
                             void * userData)
 {
+    (void)userData; /* unused */
+
     return (session1 == session2);
 }

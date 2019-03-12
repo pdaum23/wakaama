@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2015 Bosch Software Innovations GmbH, Germany.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -23,7 +23,7 @@
 
 static void handle_12345(lwm2m_block1_data_t ** blk1,
                                   uint16_t mid) {
-    uint8_t *buffer = "12345";
+    uint8_t *buffer = (uint8_t *)"12345";
     size_t bsize;
     uint8_t *resultBuffer = NULL;
 
@@ -34,7 +34,7 @@ static void handle_12345(lwm2m_block1_data_t ** blk1,
 
 static void handle_67(lwm2m_block1_data_t ** blk1,
                                   uint16_t mid) {
-    uint8_t *buffer = "67";
+    uint8_t *buffer = (uint8_t *)"67";
     size_t bsize;
     uint8_t *resultBuffer = NULL;
 

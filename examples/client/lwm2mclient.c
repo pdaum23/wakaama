@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2013, 2014 Intel Corporation and others.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -478,7 +478,7 @@ static void prv_object_dump(char * buffer,
 
     result = lwm2m_stringToUri(buffer, end - buffer, &uri);
     if (result == 0) goto syntax_error;
-    if (uri.flag & LWM2M_URI_FLAG_RESOURCE_ID) goto syntax_error;
+    if (LWM2M_URI_IS_SET_RESOURCE(&uri)) goto syntax_error;
 
     objectP = (lwm2m_object_t *)LWM2M_LIST_FIND(lwm2mH->objectList, uri.objectId);
     if (objectP == NULL)
@@ -487,7 +487,7 @@ static void prv_object_dump(char * buffer,
         return;
     }
 
-    if (uri.flag & LWM2M_URI_FLAG_INSTANCE_ID)
+    if (LWM2M_URI_IS_SET_INSTANCE(&uri))
     {
         prv_instance_dump(objectP, uri.instanceId);
     }
@@ -822,7 +822,9 @@ int main(int argc, char *argv[])
 #endif
 
     char * pskId = NULL;
+#ifdef WITH_TINYDTLS
     char * psk = NULL;
+#endif
     uint16_t pskLen = -1;
     char * pskBuffer = NULL;
 

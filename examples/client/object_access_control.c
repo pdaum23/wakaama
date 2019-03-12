@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2015 Bosch Software Innovations GmbH Germany.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -189,7 +189,7 @@ static uint8_t prv_write_resources(uint16_t instanceId, int numData,
                lwm2m_data_t* tlvArray, lwm2m_object_t* objectP, bool doCreate)
 {
     int i;
-    uint8_t result;
+    uint8_t result = COAP_500_INTERNAL_SERVER_ERROR;
     int64_t value;
 
     acc_ctrl_oi_t* accCtrlOiP = (acc_ctrl_oi_t *)

@@ -2,11 +2,11 @@
  *
  * Copyright (c) 2013, 2014 Intel Corporation and others.
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
+ * are made available under the terms of the Eclipse Public License v2.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v20.html
  * The Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -18,6 +18,7 @@
  *    Julien Vermillard - Please refer to git log
  *    Bosch Software Innovations GmbH - Please refer to git log
  *    Christian Renz - Please refer to git log
+ *    Scott Bertin, AMETEK, Inc. - Please refer to git log
  *
  *******************************************************************************/
 
@@ -84,26 +85,62 @@ static void prv_print_error(uint8_t status)
     fprintf(stdout, "\r\n");
 }
 
-static char * prv_dump_binding(lwm2m_binding_t binding)
+static const char * prv_dump_version(lwm2m_version_t version)
 {
-    switch (binding)
+    switch(version)
     {
-    case BINDING_UNKNOWN:
-        return "Not specified";
-    case BINDING_U:
-        return "UDP";
-    case BINDING_UQ:
-        return "UDP queue mode";
-    case BINDING_S:
-        return "SMS";
-    case BINDING_SQ:
-        return "SMS queue mode";
-    case BINDING_US:
-        return "UDP plus SMS";
-    case BINDING_UQS:
-        return "UDP queue mode plus SMS";
+    case VERSION_MISSING:
+        return "Missing";
+    case VERSION_UNRECOGNIZED:
+        return "Unrecognized";
+    case VERSION_1_0:
+        return "1.0";
+    case VERSION_1_1:
+        return "1.1";
     default:
         return "";
+    }
+}
+
+static void prv_dump_binding(lwm2m_binding_t binding)
+{
+    if(BINDING_UNKNOWN == binding)
+    {
+        fprintf(stdout, "\tbinding: \"Not specified\"\r\n");
+    }
+    else
+    {
+        const struct bindingTable
+        {
+            lwm2m_binding_t binding;
+            const char *text;
+        } bindingTable[] =
+        {
+            { BINDING_U, "UDP" },
+            { BINDING_T, "TCP" },
+            { BINDING_S, "SMS" },
+            { BINDING_N, "Non-IP" },
+            { BINDING_Q, "queue mode" },
+        };
+        size_t i;
+        bool oneSeen = false;
+        fprintf(stdout, "\tbinding: \"");
+        for (i = 0; i < sizeof(bindingTable) / sizeof(bindingTable[0]); i++)
+        {
+            if ((binding & bindingTable[i].binding) != 0)
+            {
+                if (oneSeen)
+                {
+                    fprintf(stdout, ", %s", bindingTable[i].text);
+                }
+                else
+                {
+                    fprintf(stdout, "%s", bindingTable[i].text);
+                    oneSeen = true;
+                }
+            }
+        }
+        fprintf(stdout, "\"\r\n");
     }
 }
 
@@ -113,7 +150,8 @@ static void prv_dump_client(lwm2m_client_t * targetP)
 
     fprintf(stdout, "Client #%d:\r\n", targetP->internalID);
     fprintf(stdout, "\tname: \"%s\"\r\n", targetP->name);
-    fprintf(stdout, "\tbinding: \"%s\"\r\n", prv_dump_binding(targetP->binding));
+    fprintf(stdout, "\tversion: \"%s\"\r\n", prv_dump_version(targetP->version));
+    prv_dump_binding(targetP->binding);
     if (targetP->msisdn) fprintf(stdout, "\tmsisdn: \"%s\"\r\n", targetP->msisdn);
     if (targetP->altPath) fprintf(stdout, "\talternative path: \"%s\"\r\n", targetP->altPath);
     fprintf(stdout, "\tlifetime: %d sec\r\n", targetP->lifetime);
@@ -179,6 +217,22 @@ static int prv_read_id(char * buffer,
     return nb;
 }
 
+static void prv_printUri(const lwm2m_uri_t * uriP)
+{
+    fprintf(stdout, "/%d", uriP->objectId);
+    if (LWM2M_URI_IS_SET_INSTANCE(uriP))
+        fprintf(stdout, "/%d", uriP->instanceId);
+    else if (LWM2M_URI_IS_SET_RESOURCE(uriP))
+        fprintf(stdout, "/");
+    if (LWM2M_URI_IS_SET_RESOURCE(uriP))
+            fprintf(stdout, "/%d", uriP->resourceId);
+#ifndef LWM2M_VERSION_1_0
+    else if (LWM2M_URI_IS_SET_RESOURCE_INSTANCE(uriP))
+        fprintf(stdout, "/");
+    if (LWM2M_URI_IS_SET_RESOURCE_INSTANCE(uriP))
+            fprintf(stdout, "/%d", uriP->resourceInstanceId);
+#endif
+}
 
 static void prv_result_callback(uint16_t clientID,
                                 lwm2m_uri_t * uriP,
@@ -188,13 +242,8 @@ static void prv_result_callback(uint16_t clientID,
                                 int dataLength,
                                 void * userData)
 {
-    fprintf(stdout, "\r\nClient #%d /%d", clientID, uriP->objectId);
-    if (LWM2M_URI_IS_SET_INSTANCE(uriP))
-        fprintf(stdout, "/%d", uriP->instanceId);
-    else if (LWM2M_URI_IS_SET_RESOURCE(uriP))
-        fprintf(stdout, "/");
-    if (LWM2M_URI_IS_SET_RESOURCE(uriP))
-            fprintf(stdout, "/%d", uriP->resourceId);
+    fprintf(stdout, "\r\nClient #%d ", clientID);
+    prv_printUri(uriP);
     fprintf(stdout, " : ");
     print_status(stdout, status);
     fprintf(stdout, "\r\n");
@@ -213,13 +262,8 @@ static void prv_notify_callback(uint16_t clientID,
                                 int dataLength,
                                 void * userData)
 {
-    fprintf(stdout, "\r\nNotify from client #%d /%d", clientID, uriP->objectId);
-    if (LWM2M_URI_IS_SET_INSTANCE(uriP))
-        fprintf(stdout, "/%d", uriP->instanceId);
-    else if (LWM2M_URI_IS_SET_RESOURCE(uriP))
-        fprintf(stdout, "/");
-    if (LWM2M_URI_IS_SET_RESOURCE(uriP))
-            fprintf(stdout, "/%d", uriP->resourceId);
+    fprintf(stdout, "\r\nNotify from client #%d ", clientID);
+    prv_printUri(uriP);
     fprintf(stdout, " number %d\r\n", count);
 
     output_data(stdout, format, data, dataLength, 1);
